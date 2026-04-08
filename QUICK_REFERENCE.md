@@ -9,8 +9,8 @@ bash setup.sh
 # 2. Activate virtual environment
 source venv/bin/activate
 
-# 3. Start oMLX (in another terminal)
-mlx serve
+# 3. Start Ollama (in another terminal)
+ollama serve
 
 # 4. Edit .env with your Discord token
 nano .env
@@ -25,21 +25,23 @@ python bot.py
 |---------|-------|---------|
 | `!ask` | Ask the AI a question | `!ask What is Python?` |
 | `!model` | Show available models | `!model` |
-| `!help_omlx` | Show help menu | `!help_omlx` |
+| `!help_ollama` | Show help menu | `!help_ollama` |
 | **Mention** | Ask naturally | `@bot explain quantum computing` |
 
-## Common oMLX Models
+## Common Ollama Models
 
 ```bash
-# Fast models (recommended for Discord)
-mlx pull deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
-mlx pull microsoft/DialoGPT-medium
+# Recommended model for this setup
+ollama pull qwen3.5:9b
+
+# Fast models
+ollama pull orca-mini
 
 # Larger models (slower but better quality)
-mlx pull meta-llama/Llama-2-7b-chat-hf
+ollama pull llama2
 
 # List installed models
-mlx list
+ollama list
 ```
 
 ## Environment Variables
@@ -48,9 +50,8 @@ Copy `.env.example` to `.env` and fill in:
 
 ```env
 DISCORD_TOKEN=your_bot_token
-OMLX_HOST=http://localhost:8080
-OMLX_MODEL=DeepSeek-R1-Distill-Qwen-1.5B
-OMLX_API_KEY=your_api_key_here
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=qwen3.5:9b
 ```
 
 ## Troubleshooting
@@ -58,7 +59,7 @@ OMLX_API_KEY=your_api_key_here
 ### Bot won't start
 - ❌ `ModuleNotFoundError`: Run `pip install -r requirements.txt`
 - ❌ `DISCORD_TOKEN not found`: Edit `.env` file with your token
-- ❌ `ConnectionRefusedError`: oMLX not running, start with `mlx serve`
+- ❌ `ConnectionRefusedError`: Ollama not running, start with `ollama serve`
 
 ### Bot doesn't respond
 - Check bot has message permissions in server settings
@@ -66,19 +67,17 @@ OMLX_API_KEY=your_api_key_here
 - Check server console for error messages
 
 ### Slow responses
-- Use smaller model: `mlx pull microsoft/DialoGPT-medium`
+- Use a smaller Ollama model like `orca-mini` or `llama2`
 - Check machine resources (CPU, RAM)
 - Increase request timeout in bot.py
 
-### "Could not connect to oMLX"
+### "Could not connect to Ollama"
 ```bash
-# Test oMLX connection
-curl -X POST http://localhost:8080/v1/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", "prompt": "Hello", "max_tokens": 10}'
+# Test Ollama connection
+curl http://localhost:11434/api/tags
 
-# If it fails, start oMLX:
-mlx serve
+# If it fails, start Ollama:
+ollama serve
 ```
 
 ## File Structure
@@ -105,13 +104,16 @@ async def ping(ctx):
 
 @bot.command(name='status')
 async def status(ctx):
-    """Check oMLX connection"""
+    """Check Ollama connection"""
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{OMLX_HOST}/v1/models") as resp:
-                await ctx.send("✅ oMLX is online")
-    except:
-        await ctx.send("❌ oMLX is offline")
+            async with session.get(f"{OLLAMA_HOST}/api/tags") as resp:
+                if resp.status == 200:
+                    await ctx.send("✅ Ollama is online")
+                else:
+                    await ctx.send("⚠️ Ollama returned status {resp.status}")
+    except Exception:
+        await ctx.send("❌ Ollama is offline")
 ```
 
 ## Performance Tips

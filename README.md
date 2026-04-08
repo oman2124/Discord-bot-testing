@@ -1,35 +1,32 @@
-# 🤖 Discord Bot with oMLX Integration
+# 🤖 Discord Bot with Ollama Integration
 
-A Discord bot that integrates with oMLX to provide AI-powered responses using local language models on Apple Silicon.
+A Discord bot that integrates with Ollama to provide AI-powered responses from local Ollama models.
 
 ## Features
 
-- **AI Responses**: Ask questions and get responses from oMLX AI models
-- **Multiple Models**: Support for any oMLX model (DeepSeek, Llama, etc.)
-- **Flexible API**: Automatically detects and works with different oMLX server API formats
+- **AI Responses**: Ask questions and get responses from Ollama AI models
+- **Multiple Models**: Support for any Ollama model installed locally
+- **Simple API**: Uses Ollama's local REST API at `http://localhost:11434`
 - **Commands**:
   - `!ask <question>` - Ask the AI a question
-  - `!model` - View available models and current model
-  - `!help_omlx` - Show help menu
+  - `!model` - View current model information
+  - `!help_ollama` - Show help menu
   - **Mention**: Just mention the bot and ask a question naturally
 
 ## Requirements
 
 - Python 3.8+
 - Discord Bot Token
-- oMLX running locally (Apple Silicon Macs)
+- Ollama running locally
 
 ## Setup
 
 ### 1. Install Prerequisites
 
 ```bash
-# Install oMLX from https://github.com/ml-explore/mlx
-pip install mlx
-# Install the model you want to use
-mlx pull deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
-# Start oMLX server (typically runs on port 8080)
-mlx serve
+# Install Ollama from https://ollama.ai
+ollama pull qwen3.5:9b  # or any other model
+ollama serve  # Start Ollama (runs on localhost:11434 by default)
 ```
 
 ### 2. Clone and Setup Bot
@@ -55,9 +52,8 @@ pip install -r requirements.txt
 Edit `.env` file:
 ```env
 DISCORD_TOKEN=your_token_here
-OMLX_HOST=http://localhost:8080
-OMLX_MODEL=DeepSeek-R1-Distill-Qwen-1.5B
-OMLX_API_KEY=your_api_key_here
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=qwen3.5:9b
 ```
 
 ### 5. Run the Bot
@@ -81,38 +77,35 @@ User: !ask What are the benefits of machine learning?
 Bot: > Machine learning provides numerous benefits...
 ```
 
-## oMLX Models
+## Ollama Models
 
 Popular models you can use:
-- `DeepSeek-R1-Distill-Qwen-1.5B` - Fast and capable (currently configured)
-- `DeepSeek-Coder-V2-Lite-Instruct` - Code-focused model
-- `Qwen2.5-Coder-1.5B-Instruct` - Another coding model
+- `qwen3.5:9b` - Recommended for this bot setup
+- `llama2` - Meta's Llama 2 chat model
+- `orca-mini` - Smaller and faster model
 
-Check your oMLX server for available models: `curl http://localhost:8000/v1/models -H "Authorization: Bearer YOUR_API_KEY"`
+Check your Ollama installation for available models: `ollama list`
 
 ## Troubleshooting
 
 **Bot doesn't respond:**
-- Check if oMLX is running: `curl http://localhost:8080/v1/models`
+- Check if Ollama is running: `curl http://localhost:11434/api/tags`
 - Verify `DISCORD_TOKEN` is correct
 - Check bot has message permissions in your server
 
-**"Could not connect to oMLX":**
-- Make sure oMLX is running: `mlx serve`
-- Check `OMLX_HOST` in `.env` matches your oMLX location
-- The bot automatically tries multiple API formats, but verify your oMLX server supports one of: `/v1/completions`, `/generate`, or `/v1/chat/completions`
+**"Could not connect to Ollama":**
+- Make sure Ollama is running: `ollama serve`
+- Check `OLLAMA_HOST` in `.env` matches your Ollama location
 
 **Request times out:**
 - Large models take longer, increase wait time or use a smaller model
-- Check your system resources (memory is critical for ML models)
-- Response length is limited to 200 tokens to prevent memory issues
+- Check your system resources
 
 ## Environment Variables
 
 - `DISCORD_TOKEN` - Your Discord bot token (required)
-- `OMLX_HOST` - oMLX server address (default: `http://localhost:8080`)
-- `OMLX_MODEL` - Which model to use (default: `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B`)
-- `OMLX_API_KEY` - API key for authentication (optional)
+- `OLLAMA_HOST` - Ollama server address (default: `http://localhost:11434`)
+- `OLLAMA_MODEL` - Which model to use (default: `qwen3.5:9b`)
 
 ## License
 
