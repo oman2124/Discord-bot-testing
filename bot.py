@@ -4,6 +4,7 @@ import aiohttp
 import asyncio
 import os
 import sys
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Check Python version
@@ -21,6 +22,22 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Ollama configuration
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
+LOG_FILE = os.getenv("AI_LOG_FILE", "ai_interactions.log")
+
+def log_interaction(message_text: str, response_text: str, source: str = "unknown") -> None:
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    log_entry = (
+        f"[{timestamp}] Source: {source}\n"
+        f"Message: {message_text}\n"
+        f"AI Response: {response_text}\n"
+        "---\n"
+    )
+    print(log_entry, end="")
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as log_file:
+            log_file.write(log_entry)
+    except Exception as e:
+        print(f"⚠️ Failed to write log file: {e}")
 
 @bot.event
 async def on_ready():
@@ -35,6 +52,7 @@ async def ask(ctx, *, question):
         try:
             # Show that bot is thinking
             response_text = await query_ollama(question)
+            log_interaction(question, response_text, source="ask command")
             
             # Split response if too long for Discord (2000 char limit)
             if len(response_text) > 2000:
@@ -101,6 +119,7 @@ async def on_message(message):
     if bot.user.mentioned_in(message):
         async with message.channel.typing():
             response = await query_ollama(message.content)
+            log_interaction(message.content, response, source="mention reply")
             if len(response) > 2000:
                 chunks = [response[i:i+1900] for i in range(0, len(response), 1900)]
                 for chunk in chunks:
