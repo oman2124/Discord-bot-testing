@@ -19,6 +19,14 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Bot statistics tracking
+start_time = None
+command_counts = {
+    'ask': 0,
+    'model': 0,
+    'help_ollama': 0
+}
+
 # Ollama configuration
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
@@ -41,6 +49,8 @@ def log_interaction(message_text: str, response_text: str, source: str = "unknow
 
 @bot.event
 async def on_ready():
+    global start_time
+    start_time = datetime.utcnow()
     print(f'✅ Bot logged in as {bot.user}')
     print(f'🔗 Connected to Ollama at: {OLLAMA_HOST}')
     print(f'🤖 Using model: {OLLAMA_MODEL}')
@@ -48,6 +58,8 @@ async def on_ready():
 @bot.command(name='ask')
 async def ask(ctx, *, question):
     """Ask a question to the Ollama AI model"""
+    global command_counts
+    command_counts['ask'] += 1
     async with ctx.typing():
         try:
             # Show that bot is thinking
@@ -68,6 +80,8 @@ async def ask(ctx, *, question):
 @bot.command(name='model')
 async def model(ctx):
     """Show current model information"""
+    global command_counts
+    command_counts['model'] += 1
     try:
         await ctx.send(f"**Current Model:** `{OLLAMA_MODEL}`\n**Ollama Host:** {OLLAMA_HOST}")
     except Exception as e:
@@ -76,11 +90,52 @@ async def model(ctx):
 @bot.command(name='help_ollama')
 async def help_ollama(ctx):
     """Show help for Ollama bot commands"""
+    global command_counts
+    command_counts['help_ollama'] += 1
     embed = discord.Embed(title="🤖 Ollama Bot Help", color=discord.Color.blue())
     embed.add_field(name="!ask <question>", value="Ask the AI model a question", inline=False)
     embed.add_field(name="!model", value="Show current model information", inline=False)
+    embed.add_field(name="!status", value="Show bot statistics", inline=False)
     embed.add_field(name="!help_ollama", value="Show this help message", inline=False)
     embed.set_footer(text=f"Connected to {OLLAMA_HOST}")
+    await ctx.send(embed=embed)
+
+@bot.command(name='status')
+async def status(ctx):
+    """Show bot statistics"""
+    global command_counts, start_time
+    
+    # Calculate uptime
+    if start_time:
+        uptime = datetime.utcnow() - start_time
+        uptime_str = str(uptime).split('.')[0]  # Remove microseconds
+    else:
+        uptime_str = "Unknown"
+    
+    # Count logged interactions
+    interaction_count = 0
+    try:
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, 'r', encoding='utf-8') as f:
+                content = f.read()
+                interaction_count = content.count('---')  # Each interaction ends with ---
+    except Exception:
+        interaction_count = 0
+    
+    # Get server and user counts
+    guild_count = len(bot.guilds)
+    user_count = sum(guild.member_count for guild in bot.guilds if guild.member_count)
+    
+    embed = discord.Embed(title="📊 Bot Statistics", color=discord.Color.green())
+    embed.add_field(name="⏱️ Uptime", value=uptime_str, inline=True)
+    embed.add_field(name="🏠 Servers", value=guild_count, inline=True)
+    embed.add_field(name="👥 Users", value=user_count, inline=True)
+    embed.add_field(name="💬 AI Interactions", value=interaction_count, inline=True)
+    embed.add_field(name="!ask Commands", value=command_counts['ask'], inline=True)
+    embed.add_field(name="!model Commands", value=command_counts['model'], inline=True)
+    embed.add_field(name="!help_ollama Commands", value=command_counts['help_ollama'], inline=True)
+    embed.set_footer(text=f"Model: {OLLAMA_MODEL} | Host: {OLLAMA_HOST}")
+    
     await ctx.send(embed=embed)
 
 async def query_ollama(prompt: str) -> str:
